@@ -16,12 +16,34 @@ namespace Magitek.Logic.RedMage
 {
     internal static class Aoe
     {
+        private static  BattleCharacter FindBestTarget(double spellRange, double spellRadius)
+        {
+            if (Core.Me.CurrentTarget == null || Core.Me.CurrentTarget == Core.Me || !Core.Me.CurrentTarget.InView())
+                return null;
+
+            BattleCharacter bestTarget =  Combat.Enemies.Where(t =>    t.InView()
+                                             && t.Distance(Core.Me) <= spellRange + Core.Me.CombatReach + t.CombatReach)
+                                 .OrderByDescending(t => Combat.Enemies.Where(e => e.Distance(t) <= spellRadius + e.CombatReach).Count())
+                                 .ThenByDescending(t => t.CurrentHealthPercent)
+                                 .FirstOrDefault();
+
+            if (bestTarget != null)
+                Logger.WriteInfo($"Best Target: {bestTarget.EnglishName} ({Combat.Enemies.Where(e => e.Distance(bestTarget) <= spellRadius + e.CombatReach).Count()}/{Combat.Enemies.Count()})");
+
+            return bestTarget;
+        }
+
         public static async Task<bool> Scatter()
         {
             if (!RedMageSettings.Instance.Scatter)
                 return false;
 
-            if (Combat.Enemies.Count(r => r.Distance(Core.Me?.CurrentTarget) <= 5 + r.CombatReach) < RedMageSettings.Instance.ScatterEnemies)
+            BattleCharacter bestTarget = FindBestTarget(25, 5);
+
+            if (bestTarget == null)
+                return false;
+
+            if (Combat.Enemies.Count(r => r.Distance(bestTarget) <= 5 + r.CombatReach) < RedMageSettings.Instance.ScatterEnemies)
                 return false;
 
             if (!Core.Me.HasAura(Auras.Dualcast))
@@ -41,15 +63,15 @@ namespace Magitek.Logic.RedMage
                     if (await Spells.Swiftcast.Cast(Core.Me))
                     {
                         await Coroutine.Wait(2000, () => Core.Me.HasAura(Auras.Swiftcast));
-                        await Coroutine.Wait(2000, () => ActionManager.CanCast(Spells.Scatter, Core.Me.CurrentTarget));
-                        return await Spells.Scatter.Cast(Core.Me.CurrentTarget);
+                        await Coroutine.Wait(2000, () => ActionManager.CanCast(Spells.Scatter, bestTarget));
+                        return await Spells.Scatter.Cast(bestTarget);
                     }
                 }
                 else
                     return false;
             }
 
-            return await Spells.Scatter.Cast(Core.Me.CurrentTarget);
+            return await Spells.Scatter.Cast(bestTarget);
         }
 
         public static async Task<bool> ContreSixte()
@@ -57,14 +79,19 @@ namespace Magitek.Logic.RedMage
             if (!RedMageSettings.Instance.UseContreSixte)
                 return false;
 
-            if (Combat.Enemies.Count(r => r.Distance(Core.Me?.CurrentTarget) <= 6 + r.CombatReach) < RedMageSettings.Instance.ContreSixteEnemies)
+            BattleCharacter bestTarget = FindBestTarget(25, 6);
+
+            if (bestTarget == null)
+                return false;
+
+            if (Combat.Enemies.Count(r => r.Distance(bestTarget) <= 6 + r.CombatReach) < RedMageSettings.Instance.ContreSixteEnemies)
                 return false;
 
             if (Core.Me.HasAura(Auras.Dualcast))
                 return false;
 
             else
-                return await Spells.ContreSixte.Cast(Core.Me.CurrentTarget);
+                return await Spells.ContreSixte.Cast(bestTarget);
         }
 
         private static bool InMoulinetArc(GameObject target)
@@ -224,11 +251,16 @@ namespace Magitek.Logic.RedMage
             if (!RedMageSettings.Instance.Ver2)
                 return false;
 
-            if (Combat.Enemies.Count(r => r.Distance(Core.Me?.CurrentTarget) <= 5 + r.CombatReach) < RedMageSettings.Instance.Ver2Enemies)
+            BattleCharacter bestTarget = FindBestTarget(25, 5);
+
+            if (bestTarget == null)
+                return false;
+
+            if (Combat.Enemies.Count(r => r.Distance(bestTarget) <= 5 + r.CombatReach) < RedMageSettings.Instance.Ver2Enemies)
                 return false;
 
             else
-                return await Spells.Veraero2.Cast(Core.Me.CurrentTarget);
+                return await Spells.Veraero2.Cast(bestTarget);
         }
 
         public static async Task<bool> Verthunder2()
@@ -240,11 +272,16 @@ namespace Magitek.Logic.RedMage
             if (!RedMageSettings.Instance.Ver2)
                 return false;
 
-            if (Combat.Enemies.Count(r => r.Distance(Core.Me?.CurrentTarget) <= 5 + r.CombatReach) < RedMageSettings.Instance.Ver2Enemies)
+            BattleCharacter bestTarget = FindBestTarget(25, 5);
+
+            if (bestTarget == null)
+                return false;
+
+            if (Combat.Enemies.Count(r => r.Distance(bestTarget) <= 5 + r.CombatReach) < RedMageSettings.Instance.Ver2Enemies)
                 return false;
 
             else
-                return await Spells.Verthunder2.Cast(Core.Me.CurrentTarget);
+                return await Spells.Verthunder2.Cast(bestTarget);
         }
     }
 }
