@@ -68,6 +68,8 @@ namespace Magitek.Logic.RedMage
 				return await Spells.LucidDreaming.Cast(Core.Me);
         }
 
+        //TODO: We should get our procs right before casting this
+        //      - We need to take into account going over 50 and capping both (try to avoid)
         public static async Task<bool> Manafication()
         {
             if (!RedMageSettings.Instance.Manafication)
