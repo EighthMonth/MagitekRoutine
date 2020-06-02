@@ -27,9 +27,6 @@ namespace Magitek.Logic.RedMage
                                  .ThenByDescending(t => t.CurrentHealthPercent)
                                  .FirstOrDefault();
 
-            if (bestTarget != null)
-                Logger.WriteInfo($"Best Target: {bestTarget.EnglishName} ({Combat.Enemies.Where(e => e.Distance(bestTarget) <= spellRadius + e.CombatReach).Count()}/{Combat.Enemies.Count()})");
-
             return bestTarget;
         }
 
