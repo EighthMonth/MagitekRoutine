@@ -30,6 +30,13 @@ namespace Magitek.Utilities.Routines
 
             return await spell.Cast(target);
         }
+        public static async Task<bool> SyncedCastAura(SpellData spell, GameObject target, uint aura)
+        {
+            if (spell.LevelAcquired > SyncedLevel)
+                return false;
+
+            return await spell.CastAura(target, aura);
+        }
         #endregion
     }
 }
