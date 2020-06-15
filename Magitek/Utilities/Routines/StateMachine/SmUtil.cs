@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using ff14bot;
 using ff14bot.Objects;
 using Magitek.Extensions;
+using Buddy.Coroutines;
+using ff14bot.Managers;
 
 namespace Magitek.Utilities.Routines
 {
@@ -30,6 +32,7 @@ namespace Magitek.Utilities.Routines
 
             return await spell.Cast(target);
         }
+        
         public static async Task<bool> SyncedCastAura(SpellData spell, GameObject target, uint aura)
         {
             if (spell.LevelAcquired > SyncedLevel)
@@ -38,5 +41,18 @@ namespace Magitek.Utilities.Routines
             return await spell.CastAura(target, aura);
         }
         #endregion
+
+        public static async Task<bool> Swiftcast(SpellData spell, GameObject target)
+        {
+            if (spell.LevelAcquired > SmUtil.SyncedLevel)
+                return false;
+            if (await SmUtil.SyncedCast(Spells.Swiftcast, Core.Me))
+            {
+                await Coroutine.Wait(2000, () => Core.Me.HasAura(Auras.Swiftcast));
+                await Coroutine.Wait(2000, () => ActionManager.CanCast(spell, target));
+                return await spell.Cast(target);
+            }
+            return false;
+        }
     }
 }

@@ -19,11 +19,11 @@ namespace Magitek.Rotations
     public enum SmnStateIds
     {
         Start,
-        Filler,
-        FirstFillerWeaveDWT,
-        SecondFillerWeaveDWT,
-        FirstFillerWeave,
-        SecondFillerWeave,
+        SecondFiller,
+        SecondFillerFirstWeaveDWT,
+        SecondFillerSecondWeaveDWT,
+        SecondFillerFirstWeave,
+        SecondFillerSecondWeave,
         Dreadwyrm,
         FirstDreadwyrmWeave,
         SecondDreadwyrmWeave,
@@ -34,6 +34,15 @@ namespace Magitek.Rotations
         BahamutRuinUntilSecondEnkindle,
         FirstBahamutWeave,
         SecondBahamutWeave,
+        SecondEnkindleFirstWeave,
+        SecondEnkindleSecondWeave,
+        FirstFiller,
+        Bio,
+        FirstFillerFirstWeave,
+        FirstFillerSecondWeave,
+        Firebird,
+        FirstFirebirdWeave,
+        SecondFirebirdWeave,
     }
 
     public static class Summoner
@@ -105,73 +114,74 @@ namespace Magitek.Rotations
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {                                
-                                new StateTransition<SmnStateIds>(() => true,                    () => SmUtil.NoOp(), SmnStateIds.Filler, TransitionType.Immediate)
+                                new StateTransition<SmnStateIds>(() => true,                    () => SmUtil.NoOp(), SmnStateIds.SecondFiller, TransitionType.Immediate)
                             })
                     },
                    {
-                        SmnStateIds.Filler,
+                        SmnStateIds.SecondFiller,
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {                                
-                                new StateTransition<SmnStateIds>(() => BurnRuin4,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.FirstFillerWeave),
-                                new StateTransition<SmnStateIds>(() => FurtherRuinStacks >= 2,  () => SmUtil.SyncedCast(Spells.EgiAssault, Core.Me.CurrentTarget), SmnStateIds.FirstFillerWeaveDWT),
-                                new StateTransition<SmnStateIds>(() => FurtherRuinStacks >= 2,  () => SmUtil.SyncedCast(Spells.EgiAssault2, Core.Me.CurrentTarget), SmnStateIds.FirstFillerWeaveDWT),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EgiAssault, Core.Me.CurrentTarget), SmnStateIds.FirstFillerWeave),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EgiAssault2, Core.Me.CurrentTarget), SmnStateIds.FirstFillerWeave),
+                                new StateTransition<SmnStateIds>(() => BurnRuin4,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.SecondFillerFirstWeave),
+                                new StateTransition<SmnStateIds>(() => FurtherRuinStacks >= 2,  () => SmUtil.SyncedCast(Spells.EgiAssault, Core.Me.CurrentTarget), SmnStateIds.SecondFillerFirstWeaveDWT),
+                                new StateTransition<SmnStateIds>(() => FurtherRuinStacks >= 2,  () => SmUtil.SyncedCast(Spells.EgiAssault2, Core.Me.CurrentTarget), SmnStateIds.SecondFillerFirstWeaveDWT),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EgiAssault, Core.Me.CurrentTarget), SmnStateIds.SecondFillerFirstWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EgiAssault2, Core.Me.CurrentTarget), SmnStateIds.SecondFillerFirstWeave),
                                 //new StateTransition<SmnStateIds>(() => UseMiasma3,  () => SmUtil.SyncedCastAura(Spells.Miasma3, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.Bio),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin3, Core.Me.CurrentTarget), SmnStateIds.FirstFillerWeave)
+                                //TODO This ruin should spin in secondfiller somehow
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin3, Core.Me.CurrentTarget), SmnStateIds.SecondFillerFirstWeave)
                             })
                     },
                     {
-                        SmnStateIds.FirstFillerWeaveDWT,
+                        SmnStateIds.SecondFillerFirstWeaveDWT,
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
                                 
-                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFillerWeave, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFillerWeaveDWT),
-                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFillerWeaveDWT),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFillerWeaveDWT),
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFillerSecondWeave, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFillerSecondWeaveDWT),
+                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFillerSecondWeaveDWT),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFillerSecondWeaveDWT),
                                 new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
 
                             })
                     },
                     {
-                        SmnStateIds.SecondFillerWeaveDWT,
+                        SmnStateIds.SecondFillerSecondWeaveDWT,
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
-                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.Filler, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.Filler),
-                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.Filler),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.Filler),
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.SecondFiller, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFiller),
+                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFiller),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFiller),
                                 new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
 
                             })
                     },
                     {
-                        SmnStateIds.FirstFillerWeave,
+                        SmnStateIds.SecondFillerFirstWeave,
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
 
-                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFillerWeave, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFillerWeave),
-                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFillerWeave),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFillerWeave),
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFillerSecondWeave, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFillerSecondWeave),
+                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFillerSecondWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFillerSecondWeave),
                                 new StateTransition<SmnStateIds>(() => ReadyForDreadwyrm,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
 
                             })
                     },
                     {
-                        SmnStateIds.SecondFillerWeave,
+                        SmnStateIds.SecondFillerSecondWeave,
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
-                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.Filler, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.Filler),
-                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.Filler),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.Filler),
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.SecondFiller, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFiller),
+                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFiller),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFiller),
                                 new StateTransition<SmnStateIds>(() => ReadyForDreadwyrm,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
 
                             })
@@ -277,7 +287,107 @@ namespace Magitek.Rotations
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
-                                new StateTransition<SmnStateIds>(() => Spells.EnkindleBahamut.Cooldown == TimeSpan.Zero,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.BahamutSecondEnkindle),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.SecondEnkindleFirstWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin2, Core.Me.CurrentTarget), SmnStateIds.SecondEnkindleFirstWeave),                                
+                            })
+                    },
+                    {
+                        SmnStateIds.SecondEnkindleFirstWeave,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400,        () => SmUtil.NoOp(),    SmnStateIds.SecondEnkindleSecondWeave, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindleBahamut, Core.Me.CurrentTarget), SmnStateIds.SecondEnkindleSecondWeave),
+                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFiller),
+                            })
+                    },
+                    {
+                        SmnStateIds.SecondEnkindleSecondWeave,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.BahamutSecondEnkindle, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindleBahamut, Core.Me.CurrentTarget), SmnStateIds.BahamutSecondEnkindle),
+                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFiller),
+                                //TODO This will exit the phase if we dont have 4 further ruin stacks when we start
+                                new StateTransition<SmnStateIds>(() => !Core.Me.HasAura(Auras.FurtherRuin),  () => SmUtil.Swiftcast(Spells.Ruin3, Core.Me.CurrentTarget), SmnStateIds.FirstFillerFirstWeave),
+                            })
+                    },
+                    {
+                        SmnStateIds.FirstFiller,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                //TODO Check firebird timing to make sure we arent losing procs
+                                //new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Trance, Core.Me), SmnStateIds.Firebird),
+                                new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.Firebird),
+                                new StateTransition<SmnStateIds>(() => UseMiasma3,  () => SmUtil.SyncedCastAura(Spells.Miasma3, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.Bio),
+                                new StateTransition<SmnStateIds>(() => BurnRuin4,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.FirstFillerFirstWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EgiAssault, Core.Me.CurrentTarget), SmnStateIds.FirstFillerFirstWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EgiAssault2, Core.Me.CurrentTarget), SmnStateIds.FirstFillerFirstWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin3, Core.Me.CurrentTarget), SmnStateIds.FirstFiller)
+                            })
+                    },
+                    {
+                        SmnStateIds.Bio,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {                                
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Bio3, Core.Me.CurrentTarget), SmnStateIds.FirstFillerSecondWeave),
+                            })
+                    },
+                    {
+                        SmnStateIds.FirstFillerFirstWeave,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400,        () => SmUtil.NoOp(),    SmnStateIds.FirstFillerSecondWeave, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.FirstFillerSecondWeave),
+                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFillerSecondWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.FirstFillerSecondWeave),
+                            })
+                    },
+                    {
+                        SmnStateIds.FirstFillerSecondWeave,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.FirstFiller, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.FirstFiller),
+                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFiller),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.FirstFiller),
+                            })
+                    },
+                    {
+                        SmnStateIds.Firebird,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => !ActionResourceManager.Summoner.DreadwyrmTrance,  () => SmUtil.NoOp(), SmnStateIds.SecondFiller),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.BrandofPurgatory, Core.Me.CurrentTarget), SmnStateIds.FirstFirebirdWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.FountainofFire, Core.Me.CurrentTarget), SmnStateIds.FirstFirebirdWeave),
+                            })
+                    },
+                    {
+                        SmnStateIds.FirstFirebirdWeave,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFirebirdWeave, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindlePhoenix, Core.Me.CurrentTarget), SmnStateIds.SecondFirebirdWeave),
+                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFirebirdWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.SecondFirebirdWeave),
+                            })
+                    },
+                    {
+                        SmnStateIds.SecondFirebirdWeave,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.Firebird, TransitionType.Immediate),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindlePhoenix, Core.Me.CurrentTarget), SmnStateIds.Firebird),
+                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.Firebird),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.Firebird),
                             })
                     },
                 }) ;
