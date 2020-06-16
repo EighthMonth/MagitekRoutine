@@ -13,22 +13,38 @@ using Auras = Magitek.Utilities.Auras;
 using Common.Logging.Simple;
 using System;
 using Buddy.Coroutines;
+using ff14bot.RemoteWindows;
 
 namespace Magitek.Rotations
 {
     public enum SmnStateIds
     {
         Start,
+        FirstOpenerEgi1,
+        OpenerED,
+        OpenerTD,
+        FirstOpenerEgi2,
+        OpenerFester,
+        SecondOpenerEgi1,
+        SecondOpenerEgi2,
+        OpenerDreadwyrm,
+        
         SecondFiller,
+        SecondFillerED,
+        SecondFillerEgi2,
         SecondFillerFirstWeaveDWT,
         SecondFillerSecondWeaveDWT,
         SecondFillerFirstWeave,
         SecondFillerSecondWeave,
+        
+        
+        StartDreadwyrm,
         Dreadwyrm,
         FirstDreadwyrmWeave,
         SecondDreadwyrmWeave,
         DreadwyrmFirstFinalWeave,
         DreadwyrmSecondFinalWeave,
+        
         BahamutFirstEnkindle,
         BahamutSecondEnkindle,
         BahamutRuinUntilSecondEnkindle,
@@ -36,10 +52,15 @@ namespace Magitek.Rotations
         SecondBahamutWeave,
         SecondEnkindleFirstWeave,
         SecondEnkindleSecondWeave,
+        
+        
         FirstFiller,
         Bio,
+        FirstFillerED,
+        FirstFillerEgi2,
         FirstFillerFirstWeave,
         FirstFillerSecondWeave,
+        StartFirebird,
         Firebird,
         FirstFirebirdWeave,
         SecondFirebirdWeave,
@@ -73,7 +94,7 @@ namespace Magitek.Rotations
 
         private static int FurtherRuinStacks => Core.Me.Auras.GetAuraStacksById(Auras.FurtherRuin);
 
-        private static bool BurnRuin4 => FurtherRuinStacks == 4 && (Spells.EgiAssault.Cooldown == TimeSpan.Zero || Spells.EgiAssault2.Cooldown == TimeSpan.Zero);
+        private static bool BurnRuin4 => FurtherRuinStacks == 4 && Spells.EgiAssault.Cooldown <= Spells.Ruin4.AdjustedCooldown;
 
         private static bool UseMiasma3 => MyAuraTimeRemaining(Core.Me.CurrentTarget, Auras.Miasma3) <= Spells.Miasma3.AdjustedCastTime.TotalMilliseconds + DoTPrecastTime && Spells.TriDisaster.Cooldown > Spells.Miasma3.AdjustedCastTime;
 
@@ -83,7 +104,7 @@ namespace Magitek.Rotations
 
         private static double GcdLeft => Math.Max(Spells.Ruin.Cooldown.TotalMilliseconds - 350, 0);
 
-        private static bool ReadyForDreadwyrm => FurtherRuinStacks >= 3;
+        private static bool ReadyForDreadwyrm => FurtherRuinStacks >= 3 && Spells.Trance.Cooldown.TotalMilliseconds == 0;
 
         private static bool EnergyDrain => ActionResourceManager.Arcanist.Aetherflow == 0;
 
@@ -103,7 +124,7 @@ namespace Magitek.Rotations
             return false;
         }
 
-        public static async Task<bool> Egi(SpellData spell)
+        public static async Task<bool> InstantCast(SpellData spell)
         {
             if (await SmUtil.SyncedCast(spell, Core.Me.CurrentTarget))
             {
@@ -115,14 +136,19 @@ namespace Magitek.Rotations
 
         public static async Task<bool> Egi1()
         {
-            return await Egi(Spells.EgiAssault);
+            return await InstantCast(Spells.EgiAssault);
         }
 
         public static async Task<bool> Egi2()
         {
-            return await Egi(Spells.EgiAssault2);
+            return await InstantCast(Spells.EgiAssault2);
         }
 
+        public static async Task<bool> Ruin4()
+        {
+            return await InstantCast(Spells.Ruin4);
+        }
+                
         static Summoner()
         {
             mStateMachine = new StateMachine<SmnStateIds>(
@@ -134,23 +160,108 @@ namespace Magitek.Rotations
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {                                
-                                new StateTransition<SmnStateIds>(() => true,                    () => SmUtil.NoOp(), SmnStateIds.SecondFiller, TransitionType.Immediate)
+                                new StateTransition<SmnStateIds>(() => true,                    () => SmUtil.NoOp(), SmnStateIds.FirstOpenerEgi1, TransitionType.Immediate)
                             })
                     },
-                   {
+                    {
+                        SmnStateIds.FirstOpenerEgi1,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                //TODO Recover from not having egi 1 available here
+                                new StateTransition<SmnStateIds>(() => true,  () => Egi1(), SmnStateIds.OpenerTD),
+                            })
+                    },                    
+                    {
+                        SmnStateIds.OpenerTD,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.TriDisaster, Core.Me.CurrentTarget), SmnStateIds.FirstOpenerEgi2),
+                            })
+                    },
+                    {
+                        SmnStateIds.FirstOpenerEgi2,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => Egi2(), SmnStateIds.SecondOpenerEgi1),
+                            })
+                    },                    
+                    {
+                        SmnStateIds.SecondOpenerEgi1,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => Egi1(), SmnStateIds.OpenerED),
+                            })
+                    },
+                    {
+                        SmnStateIds.OpenerED,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.OpenerFester),
+                            })
+                    },
+                    {
+                        SmnStateIds.OpenerFester,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.SecondOpenerEgi2),
+                            })
+                    },
+                    {
+                        SmnStateIds.SecondOpenerEgi2,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => Egi2(), SmnStateIds.OpenerDreadwyrm),
+                            })
+                    },
+                    {
+                        SmnStateIds.OpenerDreadwyrm,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.SecondDreadwyrmWeave),
+                            })
+                    },
+
+
+
+                    {
                         SmnStateIds.SecondFiller,
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
-                            {                                
-                                new StateTransition<SmnStateIds>(() => BurnRuin4,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.SecondFillerFirstWeave),
-                                //new StateTransition<SmnStateIds>(() => Spells.Trance.Cooldown.TotalMilliseconds == 0 && Spells.EgiAssault.Cooldown.TotalMilliseconds != 0 && Spells.EgiAssault2.Cooldown.TotalMilliseconds != 0,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.SecondFillerFirstWeaveDWT),
-                                new StateTransition<SmnStateIds>(() => FurtherRuinStacks >= 2,  () => Egi1(), SmnStateIds.SecondFillerFirstWeaveDWT),
-                                new StateTransition<SmnStateIds>(() => FurtherRuinStacks >= 2,  () => Egi2(), SmnStateIds.SecondFillerFirstWeaveDWT),
-                                new StateTransition<SmnStateIds>(() => true,  () => Egi1(), SmnStateIds.SecondFillerFirstWeave),
-                                new StateTransition<SmnStateIds>(() => true,  () => Egi2(), SmnStateIds.SecondFillerFirstWeave),
+                            {
+                                new StateTransition<SmnStateIds>(() => BurnRuin4,  () => Ruin4(), SmnStateIds.SecondFillerFirstWeave),
+                                new StateTransition<SmnStateIds>(() => Spells.EnergyDrain.Cooldown.TotalMilliseconds <= 1250,  () => Egi1(), SmnStateIds.SecondFillerED),
+                                //new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => InstantCast(Spells.Ruin4), SmnStateIds.SecondFillerFirstWeave),
+                                //new StateTransition<SmnStateIds>(() => Spells.Trance.Cooldown.TotalMilliseconds == 0 && Spells.EgiAssault.Cooldown.TotalMilliseconds != 0 && Spells.EgiAssault2.Cooldown.TotalMilliseconds != 0,  () => InstantCast(Spells.Ruin2), SmnStateIds.SecondFillerFirstWeaveDWT),
+                                new StateTransition<SmnStateIds>(() => FurtherRuinStacks >= 2 && Spells.Trance.Cooldown.TotalMilliseconds == 0,  () => Dreadwyrm(), SmnStateIds.FirstDreadwyrmWeave),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin3, Core.Me.CurrentTarget), SmnStateIds.SecondFiller)
                             })
+                    },                    
+                    {
+                        SmnStateIds.SecondFillerED,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFillerEgi2),
+                            })
                     },
+                    {
+                        SmnStateIds.SecondFillerEgi2,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => Egi2(), SmnStateIds.StartDreadwyrm),
+                            })
+                    },
+                    
+
                     {
                         SmnStateIds.SecondFillerFirstWeaveDWT,
                         new State<SmnStateIds>(
@@ -158,10 +269,9 @@ namespace Magitek.Rotations
                             {
                                 
                                 new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFillerSecondWeaveDWT, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFillerSecondWeaveDWT),
                                 new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFillerSecondWeaveDWT),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFillerSecondWeaveDWT),
-                                new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
+                                new StateTransition<SmnStateIds>(() => ReadyForDreadwyrm,  () => SmUtil.NoOp(), SmnStateIds.StartDreadwyrm, TransitionType.Immediate),
 
                             })
                     },
@@ -171,8 +281,7 @@ namespace Magitek.Rotations
                             new List<StateTransition<SmnStateIds>>()
                             {
                                 new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.SecondFiller, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
-                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFiller),
+                                new StateTransition<SmnStateIds>(() => ReadyForDreadwyrm,  () => SmUtil.NoOp(), SmnStateIds.StartDreadwyrm, TransitionType.Immediate),
                                 new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFiller),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFiller),
 
@@ -185,10 +294,9 @@ namespace Magitek.Rotations
                             {
 
                                 new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFillerSecondWeave, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFillerSecondWeave),
                                 new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFillerSecondWeave),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFillerSecondWeave),
-                                new StateTransition<SmnStateIds>(() => ReadyForDreadwyrm,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
+                                new StateTransition<SmnStateIds>(() => ReadyForDreadwyrm,  () => SmUtil.NoOp(), SmnStateIds.StartDreadwyrm, TransitionType.Immediate),
 
                             })
                     },
@@ -198,11 +306,18 @@ namespace Magitek.Rotations
                             new List<StateTransition<SmnStateIds>>()
                             {
                                 new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.SecondFiller, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFiller),
+                                new StateTransition<SmnStateIds>(() => ReadyForDreadwyrm,  () => SmUtil.NoOp(), SmnStateIds.StartDreadwyrm, TransitionType.Immediate),
                                 new StateTransition<SmnStateIds>(() => UseTriDisaster,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFiller),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.SmnAetherpact, Core.Me.CurrentTarget), SmnStateIds.SecondFiller),
-                                new StateTransition<SmnStateIds>(() => ReadyForDreadwyrm,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
 
+                            })
+                    },
+                    {
+                        SmnStateIds.StartDreadwyrm,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.Dreadwyrm),
                             })
                     },
                     {
@@ -306,8 +421,8 @@ namespace Magitek.Rotations
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.SecondEnkindleFirstWeave),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin2, Core.Me.CurrentTarget), SmnStateIds.SecondEnkindleFirstWeave),                                
+                                new StateTransition<SmnStateIds>(() => true,  () => Ruin4(), SmnStateIds.SecondEnkindleFirstWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => InstantCast(Spells.Ruin2), SmnStateIds.SecondEnkindleFirstWeave),                                
                             })
                     },
                     {
@@ -317,7 +432,7 @@ namespace Magitek.Rotations
                             {
                                 new StateTransition<SmnStateIds>(() => GcdLeft < 1400,        () => SmUtil.NoOp(),    SmnStateIds.SecondEnkindleSecondWeave, TransitionType.Immediate),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindleBahamut, Core.Me.CurrentTarget), SmnStateIds.SecondEnkindleSecondWeave),
-                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFiller),
+                                new StateTransition<SmnStateIds>(() => !Core.Me.HasAura(Auras.FurtherRuin),  () => SmUtil.Swiftcast(Spells.Ruin3, Core.Me.CurrentTarget), SmnStateIds.FirstFillerFirstWeave),
                             })
                     },
                     {
@@ -326,8 +441,7 @@ namespace Magitek.Rotations
                             new List<StateTransition<SmnStateIds>>()
                             {
                                 new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.BahamutSecondEnkindle, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindleBahamut, Core.Me.CurrentTarget), SmnStateIds.BahamutSecondEnkindle),
-                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFiller),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindleBahamut, Core.Me.CurrentTarget), SmnStateIds.BahamutSecondEnkindle),                                
                                 //TODO This will exit the phase if we dont have 4 further ruin stacks when we start
                                 new StateTransition<SmnStateIds>(() => !Core.Me.HasAura(Auras.FurtherRuin),  () => SmUtil.Swiftcast(Spells.Ruin3, Core.Me.CurrentTarget), SmnStateIds.FirstFillerFirstWeave),
                             })
@@ -336,12 +450,10 @@ namespace Magitek.Rotations
                         SmnStateIds.FirstFiller,
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
-                            {
-                                //TODO Check firebird timing to make sure we arent losing procs                                
-                                new StateTransition<SmnStateIds>(() => BurnRuin4 || Spells.TriDisaster.Cooldown.TotalMilliseconds == 0,  () => SmUtil.SyncedCast(Spells.Ruin4, Core.Me.CurrentTarget), SmnStateIds.FirstFillerFirstWeave),
+                            {                               
+                                new StateTransition<SmnStateIds>(() => BurnRuin4 || Spells.TriDisaster.Cooldown.TotalMilliseconds == 0,  () => Ruin4(), SmnStateIds.FirstFillerFirstWeave),
                                 new StateTransition<SmnStateIds>(() => UseMiasma3,  () => SmUtil.SyncedCastAura(Spells.Miasma3, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.Bio),
-                                new StateTransition<SmnStateIds>(() => true,  () => Egi1(), SmnStateIds.FirstFillerFirstWeave),
-                                new StateTransition<SmnStateIds>(() => true,  () => Egi2(), SmnStateIds.FirstFillerFirstWeave),
+                                new StateTransition<SmnStateIds>(() => Spells.EnergyDrain.Cooldown.TotalMilliseconds <= 1250,  () => Egi1(), SmnStateIds.FirstFillerED),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Ruin3, Core.Me.CurrentTarget), SmnStateIds.FirstFiller)
                             })
                     },
@@ -350,7 +462,23 @@ namespace Magitek.Rotations
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {                                
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Bio3, Core.Me.CurrentTarget), SmnStateIds.FirstFillerSecondWeave),
+                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Bio3, Core.Me.CurrentTarget), SmnStateIds.FirstFillerFirstWeave),
+                            })
+                    },
+                    {
+                        SmnStateIds.FirstFillerED,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => EnergyDrain,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFillerEgi2),
+                            })
+                    },
+                    {
+                        SmnStateIds.FirstFillerEgi2,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => Egi2(), SmnStateIds.FirstFillerFirstWeave),
                             })
                     },
                     {
@@ -359,8 +487,8 @@ namespace Magitek.Rotations
                             new List<StateTransition<SmnStateIds>>()
                             {
                                 new StateTransition<SmnStateIds>(() => GcdLeft < 1400,        () => SmUtil.NoOp(),    SmnStateIds.FirstFillerSecondWeave, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.SecondFirebirdWeave),
-                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFillerSecondWeave),
+                                //TODO Find a better solution to when we tri disaster
+                                new StateTransition<SmnStateIds>(() => Spells.EnergyDrain.Cooldown.TotalMilliseconds > 15000,  () => SmUtil.SyncedCastAura(Spells.TriDisaster, Core.Me.CurrentTarget, Auras.Miasma3), SmnStateIds.StartFirebird),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.FirstFillerSecondWeave),
                             })
                     },
@@ -369,9 +497,18 @@ namespace Magitek.Rotations
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
-                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.FirstFiller, TransitionType.Immediate),                                
-                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.FirstFiller),
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.FirstFiller, TransitionType.Immediate),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.FirstFiller),
+                            })
+                    },
+                    
+                    
+                    {
+                        SmnStateIds.StartFirebird,
+                        new State<SmnStateIds>(
+                            new List<StateTransition<SmnStateIds>>()
+                            {
+                                new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.Firebird),
                             })
                     },
                     {
@@ -379,6 +516,7 @@ namespace Magitek.Rotations
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
+                                //TODO We are losing first scarlet flame proc due to firing fountain of fire too early
                                 new StateTransition<SmnStateIds>(() => !ActionResourceManager.Summoner.DreadwyrmTrance,  () => SmUtil.NoOp(), SmnStateIds.SecondFiller, TransitionType.Immediate),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.BrandofPurgatory, Core.Me.CurrentTarget), SmnStateIds.FirstFirebirdWeave),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.FountainofFire, Core.Me.CurrentTarget), SmnStateIds.FirstFirebirdWeave),
@@ -389,10 +527,9 @@ namespace Magitek.Rotations
                         new State<SmnStateIds>(
                             new List<StateTransition<SmnStateIds>>()
                             {
-                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFirebirdWeave, TransitionType.Immediate),
-                                
+                                new StateTransition<SmnStateIds>(() => GcdLeft < 1400, () => SmUtil.NoOp(),  SmnStateIds.SecondFirebirdWeave, TransitionType.Immediate),                                
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindlePhoenix, Core.Me.CurrentTarget), SmnStateIds.SecondFirebirdWeave),
-                                new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.SecondFirebirdWeave),
+                                
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.SecondFirebirdWeave),
                             })
                     },
@@ -402,7 +539,7 @@ namespace Magitek.Rotations
                             new List<StateTransition<SmnStateIds>>()
                             {
                                 new StateTransition<SmnStateIds>(() => GcdLeft < 700,        () => SmUtil.NoOp(),    SmnStateIds.Firebird, TransitionType.Immediate),
-                                new StateTransition<SmnStateIds>(() => true,  () => Dreadwyrm(), SmnStateIds.Firebird),
+                                
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.EnkindlePhoenix, Core.Me.CurrentTarget), SmnStateIds.Firebird),
                                 new StateTransition<SmnStateIds>(() => ActionResourceManager.Arcanist.Aetherflow == 0,  () => SmUtil.SyncedCast(Spells.EnergyDrain, Core.Me.CurrentTarget), SmnStateIds.Firebird),
                                 new StateTransition<SmnStateIds>(() => true,  () => SmUtil.SyncedCast(Spells.Fester, Core.Me.CurrentTarget), SmnStateIds.Firebird),
