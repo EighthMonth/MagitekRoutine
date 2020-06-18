@@ -592,8 +592,11 @@ namespace Magitek.Logic.RedMage
                                 //Cast the one with less mana, if it'll surpass the larger
                                 new StateTransition<RdmStateIds>(() => WhiteMana < BlackMana && Cap(WhiteMana+11) > BlackMana, () => SmUtil.SyncedCast(Spells.Veraero, Core.Me.CurrentTarget),    RdmStateIds.PrepareProcsFirstWeave),
                                 new StateTransition<RdmStateIds>(() => BlackMana < WhiteMana && Cap(BlackMana+11) > WhiteMana, () => SmUtil.SyncedCast(Spells.Verthunder, Core.Me.CurrentTarget), RdmStateIds.PrepareProcsFirstWeave),
-                                //Otherwise, keep the larger larger
-                                new StateTransition<RdmStateIds>(() => Cap(WhiteMana+11) > BlackMana,                          () => SmUtil.SyncedCast(Spells.Veraero, Core.Me.CurrentTarget),    RdmStateIds.PrepareProcsFirstWeave),
+                                //Otherwise, keep the larger larger if we won't waste too much mana
+                                new StateTransition<RdmStateIds>(() => Cap(WhiteMana+11) > BlackMana && CapLoss(11, 0) <= 8,   () => SmUtil.SyncedCast(Spells.Veraero, Core.Me.CurrentTarget),    RdmStateIds.PrepareProcsFirstWeave),
+                                new StateTransition<RdmStateIds>(() => CapLoss(0, 11) <= 8,                                    () => SmUtil.SyncedCast(Spells.Verthunder, Core.Me.CurrentTarget), RdmStateIds.PrepareProcsFirstWeave),
+                                //Otherwise, cast the smaller
+                                new StateTransition<RdmStateIds>(() => WhiteMana <= BlackMana,                                 () => SmUtil.SyncedCast(Spells.Veraero, Core.Me.CurrentTarget),    RdmStateIds.PrepareProcsFirstWeave),
                                 new StateTransition<RdmStateIds>(() => true,                                                   () => SmUtil.SyncedCast(Spells.Verthunder, Core.Me.CurrentTarget), RdmStateIds.PrepareProcsFirstWeave),
                                 new StateTransition<RdmStateIds>(() => true,                                                   () => SmUtil.NoOp(),                                               RdmStateIds.PrepareProcsForCombo, TransitionType.NextPulse)
                             })
