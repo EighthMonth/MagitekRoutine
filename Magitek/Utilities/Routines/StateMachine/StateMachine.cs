@@ -4,18 +4,22 @@ using System.Threading.Tasks;
 
 namespace Magitek.Utilities.Routines
 {
+    //This class can be used to implement combat rotations.
+    //See StateTransition.cs for details on how the state machine operates.
+    //See Logic/RedMage/StateMachine.cs for an example implementation
     public class StateMachine<T> : IStateMachine where T : IComparable
     {
         private Dictionary<T, State<T>> mStateDict;
-        private T mCurrentState;
         private T mNextState;
         private T mDefaultState;
         private TransitionType mTransitionType;
 
+        public T CurrentState { get; private set; }
+
         public void ResetToDefaultState()
         {
             Logger.WriteInfo("Resetting State Machine");
-            mCurrentState = mDefaultState;
+            CurrentState = mDefaultState;
             mNextState = mDefaultState;
         }
 
@@ -23,7 +27,7 @@ namespace Magitek.Utilities.Routines
         {
             if (current.CompareTo(next) != 0)
             {
-                Logger.WriteInfo($"State transition: {mCurrentState} -> {mNextState}");
+                Logger.WriteInfo($"State transition: {CurrentState} -> {mNextState}");
             }
         }
 
@@ -31,16 +35,16 @@ namespace Magitek.Utilities.Routines
         {
             if (mTransitionType == TransitionType.AfterSpell && Casting.LastSpellSucceeded)
             {
-                LogStateChange(mCurrentState, mNextState);
-                mCurrentState = mNextState;
+                LogStateChange(CurrentState, mNextState);
+                CurrentState = mNextState;
             }
             else if (mTransitionType == TransitionType.NextPulse)
             {
-                LogStateChange(mCurrentState, mNextState);
-                mCurrentState = mNextState;
+                LogStateChange(CurrentState, mNextState);
+                CurrentState = mNextState;
             }
 
-            List<StateTransition<T>> transitions = mStateDict[mCurrentState].Transitions;
+            List<StateTransition<T>> transitions = mStateDict[CurrentState].Transitions;
             foreach (StateTransition<T> st in transitions)
             {
                 if (await st.TryDoAction())
@@ -49,8 +53,8 @@ namespace Magitek.Utilities.Routines
                     mTransitionType = st.TransitionType;
                     if (st.TransitionType == TransitionType.Immediate)
                     {
-                        LogStateChange(mCurrentState, mNextState);
-                        mCurrentState = mNextState;
+                        LogStateChange(CurrentState, mNextState);
+                        CurrentState = mNextState;
                         return await Pulse();
                     }
                     return true; 
@@ -63,7 +67,7 @@ namespace Magitek.Utilities.Routines
         public StateMachine(T defaultState, Dictionary<T, State<T>> stateDict)
         {
             mDefaultState = defaultState;
-            mCurrentState = defaultState;
+            CurrentState = defaultState;
             mStateDict = stateDict;
         }
     }
